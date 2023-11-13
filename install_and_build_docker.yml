@@ -1,0 +1,59 @@
+
+---
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: Installation of docker
+    shell:
+      sudo apt install docker.io -y
+
+  - name: Installation of docker SDKs for python
+    shell:
+      sudo docker run hello-world
+
+  - name: Enabling docker
+    service:
+      name: docker
+      state: started
+      enabled: true
+
+  - name: Adding docker group
+    shell:
+      usermod -aG docker rose
+
+  - name: Restarting the docker service
+    service:
+      name: docker
+      state: restarted
+      enabled: true
+
+  - name: Making a directory for docker file
+    file:
+      path: ./root/demo-dockerfile
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: Copying docker file
+    copy:
+      src: ./dockerfile
+      dest: ./root/demo-dockerfile/dockerfile
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: Building docker
+    docker_image:
+      name: container_ansible
+      build: 
+        path: ./root/demo-dockerfile
+        args:
+          listen_port: 8080
+      state: present
+      source: build
+
+  - name: Containerize an application
+    shell:
+     docker run -it -d -p 8080:80 container_ansible
